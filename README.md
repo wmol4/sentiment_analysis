@@ -1,3 +1,2 @@
 # sentiment_analysis
-Poop Poop POop
-Tom was here, lol!
+Sentiment analysis using visual character embeddings and convolutional neural networks.
