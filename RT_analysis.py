@@ -11,6 +11,8 @@ import pandas as pd
 import numpy as np
 import charembedding
 import matplotlib.pyplot as plt
+import sys
+from time import perf_counter as timer
 
 data = pd.read_table('train.tsv')
 #EACH SENTENCE HAS BEEN SPLIT INTO MULTIPLE PHRASES USING STANFORD PARSER
@@ -97,8 +99,8 @@ def load_strings_and_labels(phrases, labels):
     
     def load(labels):
         print("Loading...")
-        X = pd.read_csv("phrases.csv")
-        y = pd.read_csv("labels.csv")
+        X = pd.read_csv("W:\Projects\Sentiment Analysis\phrases.csv")
+        y = pd.read_csv("W:\Projects\Sentiment Analysis\labels.csv")
         
         X = X.as_matrix()#convert from pandas dataframe to np array
         X = np.delete(X, 0, 1) #remove leftover pandas index
@@ -152,6 +154,8 @@ X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size = 0.5,
 X = 0
 y = 0
 
+# %%
+
 print("Training Set:", X_train.shape, y_train.shape)
 print("Testing Set:", X_test.shape, y_test.shape)
 print("Validation Set:", X_val.shape, y_val.shape)
@@ -182,7 +186,7 @@ with model.as_default():
         W_conv3 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_3")
         W_conv4 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_4")
         W_conv5 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_5")
-        W_fc0 = tf.Variable(tf.truncated_normal(shape = [1337, 512], stddev = 0.1), name = "W_6")
+        W_fc0 = tf.Variable(tf.truncated_normal(shape = [10240, 512], stddev = 0.1), name = "W_6")
         W_fc1 = tf.Variable(tf.truncated_normal(shape = [512, 512], stddev = 0.1), name = "W_7")
         W_fc2 = tf.Variable(tf.truncated_normal(shape = [512, 5], stddev = 0.1), name = "W_8")
         
@@ -250,24 +254,82 @@ with model.as_default():
         correct_prediction = tf.equal(tf.argmax(fc_2, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         
+        init = tf.global_variables_initializer()
         
+tf.reset_default_graph()
+
+def save_model():
+    save_file = 'train_model.ckpt'
+    saver = tf.train.Saver({"W_0": W_conv0,
+                            "W_1": W_conv1,
+                            "W_2": W_conv2,
+                            "W_3": W_conv3,
+                            "W_4": W_conv4,
+                            "W_5": W_conv5,
+                            "W_6": W_fc0,
+                            "W_7": W_fc1,
+                            "W_8": W_fc2,
+                            "b_0": b_conv0,
+                            "b_1": b_conv1,
+                            "b_2": b_conv2,
+                            "b_3": b_conv3,
+                            "b_4": b_conv4,
+                            "b_5": b_conv5,
+                            "b_6": b_fc0,
+                            "b_7": b_fc1,
+                            "b_8": b_fc2})
+    return saver, save_file
+    
+def train(tfgraph, tfepochs, tfbatch, tfdropout, xtrain, ytrain, xval, yval, xtest, ytest, saver, save_file):
+    starter = timer()
+    
+    with tf.Session(graph = tfgraph) as sess:
+        sess.run(init)
         
+        for epoch in range(tfepochs):
+            
+            shuff_X_train, shuff_y_train = shuffle(xtrain, ytrain)
+            
+            #train
+            for offset in range(0, num_examples, tfbatch):
+                end = offset + tfbatch
+                X_batch, y_batch = shuff_X_train[offset:end], shuff_y_train[offset:end]
+                sess.run(optimizer, feed_dict = {X: X_batch, y: y_batch, keep_prob: tfdropout})
+            
+            #check validation accuracy every 10 epochs
+            if epoch % 10 == 0:
+                shuff_X_val, shuff_y_val = shuffle(xval, yval)
+                validation_accuracy = sess.run(accuracy, feed_dict = {X: shuff_X_val[:100], y: shuff_y_val[:100], keep_prob: 1.})
+                
+                #print the accuracy
+                sys.stdout.write("\r" + "Epoch: " + str(epoch) + " ||| Validation Accuracy: " + str(validation_accuracy))
+                sys.stdout.flush()
+                
+        saver.save(sess, save_file)
+        print("")
+        print("Trained Model Saved.")
         
+        #check the final testing accuracy
+        shuff_X_test, shuff_y_test = shuffle(xtest, ytest)
+        testing_accuracy = sess.run(accuracy, feed_dict = {X: shuff_X_test[:200], y: shuff_y_test, keep_prob: 1.})
+        print("")
+        print("Testing Accuracy:", testing_accuracy)
         
+        ender = timer()
+        print("")
+        print("Time:", ender - starter)
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+train(model, epochs, batch_size, keep_prob_percent, X_train, y_train, X_val, y_val, X_test, y_test, save_model()[0], save_model()[1])
+
+tf.reset_default_graph
+
+with tf.Session(graph = model) as sess:
+    save_model()[0].restore(sess, save_model()[1])
+    feed_dict = {X: X_test[:200], y: X_test[:200], keep_prob: 1.}
+    
+    file_writer = tf.summary.FileWriter('./logs/model_graph', sess.graph)
+    print("Test Accuracy:", accuracy.eval(feed_dict = feed_dict))
+
+tf.reset_default_graph()
+
         
