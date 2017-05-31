@@ -169,7 +169,7 @@ def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = "SAME")
     
 learning_rate = 1e-4
-epochs = 1000
+epochs = 100
 num_examples = X_train.shape[0]
 batch_size = 64
 keep_prob_percent = 0.5
@@ -296,14 +296,13 @@ def train(tfgraph, tfepochs, tfbatch, tfdropout, xtrain, ytrain, xval, yval, xte
                 X_batch, y_batch = shuff_X_train[offset:end], shuff_y_train[offset:end]
                 sess.run(optimizer, feed_dict = {X: X_batch, y: y_batch, keep_prob: tfdropout})
             
-            #check validation accuracy every 10 epochs
-            if epoch % 10 == 0:
-                shuff_X_val, shuff_y_val = shuffle(xval, yval)
-                validation_accuracy = sess.run(accuracy, feed_dict = {X: shuff_X_val[:100], y: shuff_y_val[:100], keep_prob: 1.})
-                
-                #print the accuracy
-                sys.stdout.write("\r" + "Epoch: " + str(epoch) + " ||| Validation Accuracy: " + str(validation_accuracy))
-                sys.stdout.flush()
+
+            shuff_X_val, shuff_y_val = shuffle(xval, yval)
+            validation_accuracy = sess.run(accuracy, feed_dict = {X: shuff_X_val[:100], y: shuff_y_val[:100], keep_prob: 1.})
+            
+            #print the accuracy
+            sys.stdout.write("\r" + "Epoch: " + str(epoch) + " ||| Validation Accuracy: " + str(validation_accuracy))
+            sys.stdout.flush()
                 
         saver.save(sess, save_file)
         print("")
