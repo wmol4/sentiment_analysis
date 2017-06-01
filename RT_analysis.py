@@ -39,7 +39,7 @@ def fix_string(string):
 
 # %%
 #split the phrases from the labels
-def create_arrays(dataframe):
+def create_string_arrays(dataframe):
     phrases = dataframe.Phrase.as_matrix()
     for i in range(len(phrases)):
         phrases[i] = fix_string(phrases[i])
@@ -53,7 +53,7 @@ def create_arrays(dataframe):
     
     return phrases, labels
     
-phrases, labels = create_arrays(data)
+phrases, labels = create_string_arrays(data)
 
 print(phrases[0])
 print(labels[0])
@@ -63,60 +63,34 @@ print(phrases.shape)
 print(labels.shape)
 
 # %%
-def load_strings_and_labels(phrases, labels):
+def create_encoded_arrays(phrases, labels):
     """
     takes the list of phrases and encodes them and adds them to a list
     adds the labels to a list
     save the list as csv files
     load the list and return them to numpy arrays
     """
-    def save(phrases, labels):
         #encode the data and save it to a large array
-        print("Saving...")
-        encoded_phrases_array = []
-        labels_array = []
-        
-        for i in range(labels.shape[0]):
-            temp_array = charembedding.log_m_embedding(phrases[i], maxlen = 160)
-            assert temp_array.shape == (8, 160)
-            encoded_phrases_array.append(temp_array)
-            
-            assert labels[i].shape == (5,)            
-            labels_array.append(labels[i])
-            
-        encoded_phrases_array = np.array(encoded_phrases_array)
-        encoded_phrases_array = encoded_phrases_array.reshape(labels.shape[0], 1280)
-        labels_array = np.array(labels_array)
-        
-        phrases_dataframe = pd.DataFrame(encoded_phrases_array)
-        labels_dataframe = pd.DataFrame(labels_array)
-        
-        phrases_dataframe.to_csv('phrases.csv')
-        labels_dataframe.to_csv('labels.csv')
-        print("Saved.")
-        
-    #save(phrases, labels) #comment this line out once the csv's have been made
+    print("Saving...")
+    encoded_phrases_array = []
+    labels_array = []
     
-    def load(labels):
-        print("Loading...")
-        X = pd.read_csv("W:\Projects\Sentiment Analysis\phrases.csv")
-        y = pd.read_csv("W:\Projects\Sentiment Analysis\labels.csv")
+    for i in range(labels.shape[0]):
+        temp_array = charembedding.log_m_embedding(phrases[i], maxlen = 160)
+        assert temp_array.shape == (8, 160)
+        encoded_phrases_array.append(temp_array)
         
-        X = X.as_matrix()#convert from pandas dataframe to np array
-        X = np.delete(X, 0, 1) #remove leftover pandas index
-        X = X.reshape(labels.shape[0], 8, 160, 1)
+        assert labels[i].shape == (5,)            
+        labels_array.append(labels[i])
         
-        y = y.as_matrix()
-        y = np.delete(y, 0, 1)
+    encoded_phrases_array = np.array(encoded_phrases_array)
+    encoded_phrases_array = encoded_phrases_array.reshape(labels.shape[0], labels.shape[1], labels.shape[2], 1)
+    labels_array = np.array(labels_array)
         
-        return X, y
-    
-    X, y = load(labels)
-    print("Finished Loading")
-    return X, y
+    return encoded_phrases_array, labels array
     
     
-X, y = load_strings_and_labels(phrases, labels)
+X, y = create_encoded_arrays(phrases, labels)
 
 # %%
 def plot_string(string, save = False):
