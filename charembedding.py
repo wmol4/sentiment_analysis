@@ -28,3 +28,6 @@ def log_m_embedding(in_string, maxlen=None, char_encode = ord, rows = 8, dtype =
     else:
         ret = a
     return ret
+
+def test_log_m_embedding():
+    return
