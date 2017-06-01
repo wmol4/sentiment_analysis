@@ -87,7 +87,7 @@ def create_encoded_arrays(phrases, labels):
     encoded_phrases_array = encoded_phrases_array.reshape(labels.shape[0], labels.shape[1], labels.shape[2], 1)
     labels_array = np.array(labels_array)
         
-    return encoded_phrases_array, labels array
+    return encoded_phrases_array, labels_array
     
 X, y = create_encoded_arrays(phrases, labels)
 
