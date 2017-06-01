@@ -17,8 +17,10 @@ def log_m_embedding(in_string, maxlen=None, char_encode = ord, rows = 8, dtype =
         rows: int
             number of rows.
     """
-    embedding = np.asarray([b=='1' for c in in_string for b in to_bit_seq(char_encode(c), rows)][slice(None,maxlen)],\
+    embedding = np.asarray([b=='1' for c in in_string for b in to_bit_seq(char_encode(c), rows)]\
+                           [slice(None,maxlen*rows if maxlen != None else None)],\
                            dtype=dtype)
+
     a = np.transpose(embedding.reshape((len(embedding)//rows, rows)))
     if(maxlen != None):
         ret = np.zeros((rows, maxlen))
