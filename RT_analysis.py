@@ -89,7 +89,6 @@ def create_encoded_arrays(phrases, labels):
         
     return encoded_phrases_array, labels array
     
-    
 X, y = create_encoded_arrays(phrases, labels)
 
 # %%
@@ -121,7 +120,7 @@ def plot_string(string, save = False):
 # %%
 
 #split the data into train, validation, and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 7)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 7)
 X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size = 0.5, random_state = 7)
 
 #clear the saved arrays to save space
@@ -292,17 +291,20 @@ def train(tfgraph, tfepochs, tfbatch, tfdropout, xtrain, ytrain, xval, yval, xte
         print("")
         print("Time:", ender - starter)
         
-train(model, epochs, batch_size, keep_prob_percent, X_train, y_train, X_val, y_val, X_test, y_test, save_model()[0], save_model()[1])
+#train(model, epochs, batch_size, keep_prob_percent, X_train, y_train, X_val, y_val, X_test, y_test, save_model()[0], save_model()[1])
 
 tf.reset_default_graph
 
-with tf.Session(graph = model) as sess:
-    save_model()[0].restore(sess, save_model()[1])
-    feed_dict = {X: X_test[:200], y: X_test[:200], keep_prob: 1.}
+def test_accuracy():
+    with tf.Session(graph = model) as sess:
+        save_model()[0].restore(sess, save_model()[1])
+        feed_dict = {X: X_test[:200], y: X_test[:200], keep_prob: 1.}
+        
+        file_writer = tf.summary.FileWriter('./logs/model_graph', sess.graph)
+        print("Test Accuracy:", accuracy.eval(feed_dict = feed_dict))
     
-    file_writer = tf.summary.FileWriter('./logs/model_graph', sess.graph)
-    print("Test Accuracy:", accuracy.eval(feed_dict = feed_dict))
-
-tf.reset_default_graph()
+    tf.reset_default_graph()
+    
+#test_accuracy()
 
         
