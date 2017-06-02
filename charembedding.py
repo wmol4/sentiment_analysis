@@ -32,16 +32,22 @@ def log_m_embedding(in_string, maxlen=None, rows = 7, dtype = int, char_encode =
         ret = a
     return ret
 
-def test_log_m_embedding(testImgLoc = relpath('testImgs')):
+def test_log_m_embedding(testImgLoc = relpath('testImgs'), char_encode = None):
     from os.path import join, isdir
     import matplotlib.pyplot as plt
+    from img_helpers import save_embedding_image
 
     assert isdir(testImgLoc), "Cannot find test image directory {0}".format(testImgLoc)
 
     all_the_characters = """ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"""
-    plt.imshow(log_m_embedding(all_the_characters)).write_png(join(testImgLoc, 'test.png'))
-    for i, c in enumerate(all_the_characters):
-        plt.imshow(log_m_embedding(c)).write_png(join(testImgLoc, 'test_char_{0}.png').format(i))
+    if(char_encode == None):
+        save_embedding_image(log_m_embedding(all_the_characters), join(testImgLoc, 'test'), (9.5, .7))
+        for i, c in enumerate(all_the_characters):
+            save_embedding_image(log_m_embedding(c), join(testImgLoc, 'test_char_{0}').format(i), (.1, .7))
+    else:
+        save_embedding_image(log_m_embedding(all_the_characters, char_encode = char_encode), join(testImgLoc, 'test'), (9.5, .7))
+        for i, c in enumerate(all_the_characters):
+            save_embedding_image(log_m_embedding(c, char_encode = char_encode), join(testImgLoc, 'test_char_{0}').format(i), (.1, .7))
 
 if __name__ == "__main__":
     if(DO_TEST):
