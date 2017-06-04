@@ -143,7 +143,7 @@ labels = np.array(labels)
 #labels = labels.reshape(labels.shape[0], 1)
     
 # %%
-cutoff = 480
+
 def create_encoded_arrays(reviews, labels):
     """
     takes the list of reviews and encodes them and adds them to a list
@@ -156,15 +156,16 @@ def create_encoded_arrays(reviews, labels):
     labels_array = []
     
     for i in range(labels.shape[0]):
-        temp_array = charembedding.log_m_embedding(reviews[i], maxlen = 80)
-        assert temp_array.shape == (8, 80)
+        temp_review = reviews[i][-2000:]
+        temp_array = charembedding.log_m_embedding(temp_review, maxlen = 2000)
+        assert temp_array.shape == (7, 2000)
         encoded_reviews_array.append(temp_array)
         
         assert labels[i].shape == (2,)            
         labels_array.append(labels[i])
         
     encoded_reviews_array = np.array(encoded_reviews_array)
-    encoded_reviews_array = encoded_reviews_array.reshape(labels.shape[0], 8, 80, 1)
+    encoded_reviews_array = encoded_reviews_array.reshape(labels.shape[0], 7, 2000, 1)
     labels_array = np.array(labels_array)
         
     return encoded_reviews_array, labels_array
@@ -205,73 +206,78 @@ model = tf.Graph()
 with model.as_default():
     with tf.device('/gpu:0'):
         #Initialize the weights
-        W_conv0 = tf.Variable(tf.truncated_normal(shape = [3, 3, 1, 128], stddev = 0.1), name = "W_0")
-        W_conv1 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_1")
-        W_conv2 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_2")
-        W_conv3 = tf.Variable(tf.truncated_normal(shape = [1, 1, 128, 128], stddev = 0.1), name = "W_3")
-        W_conv4 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_4")
-        W_conv5 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_5")
-        W_fc0 = tf.Variable(tf.truncated_normal(shape = [5120, 512], stddev = 0.1), name = "W_6")
-        W_fc1 = tf.Variable(tf.truncated_normal(shape = [512, 512], stddev = 0.1), name = "W_7")
+        W_conv0 = tf.Variable(tf.truncated_normal(shape = [8, 8, 1, 1], stddev = 0.1), name = "W_0")
+        #W_conv1 = tf.Variable(tf.truncated_normal(shape = [2, 2, 32, 64], stddev = 0.1), name = "W_1")
+        #W_conv2 = tf.Variable(tf.truncated_normal(shape = [1, 1, 64, 128], stddev = 0.1), name = "W_2")
+        #W_conv3 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_3")
+        #W_conv4 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_4")
+        #W_conv5 = tf.Variable(tf.truncated_normal(shape = [3, 3, 128, 128], stddev = 0.1), name = "W_5")
+        W_fc0 = tf.Variable(tf.truncated_normal(shape = [14000, 512], stddev = 0.1), name = "W_6")
+        #W_fc1 = tf.Variable(tf.truncated_normal(shape = [512, 512], stddev = 0.1), name = "W_7")
         W_fc2 = tf.Variable(tf.truncated_normal(shape = [512, 2], stddev = 0.1), name = "W_8")
         
         #Initialize the biases
-        b_conv0 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_0")
-        b_conv1 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_1")
-        b_conv2 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_2")
-        b_conv3 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_3")
-        b_conv4 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_4")
-        b_conv5 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_5")
+        b_conv0 = tf.Variable(tf.constant(0.1, shape = [1]), name = "b_0")
+        #b_conv1 = tf.Variable(tf.constant(0.1, shape = [64]), name = "b_1")
+        #b_conv2 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_2")
+        #b_conv3 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_3")
+        #b_conv4 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_4")
+        #b_conv5 = tf.Variable(tf.constant(0.1, shape = [128]), name = "b_5")
         b_fc0 = tf.Variable(tf.constant(0.1, shape = [512]), name = "b_6")
-        b_fc1 = tf.Variable(tf.constant(0.1, shape = [512]), name = "b_7")
+        #b_fc1 = tf.Variable(tf.constant(0.1, shape = [512]), name = "b_7")
         b_fc2 = tf.Variable(tf.constant(0.1, shape = [2]), name = "b_8")
         
         #Initialize the input tensors and the keep_prob parameter
-        X = tf.placeholder(tf.float32, shape = [None, 8, 80, 1])
+        X = tf.placeholder(tf.float32, shape = [None, 7, 2000, 1])
         y = tf.placeholder(tf.float32, shape = [None, 2])
         keep_prob = tf.placeholder(tf.float32)        
         
         #Build the graph using the functions, weights, biases, and placeholders
         conv_0 = conv2d(X, W_conv0)
         conv_0 = tf.add(conv_0, b_conv0)
-        conv_0 = tf.nn.relu(conv_0)
+        conv_0 = tf.nn.sigmoid(conv_0)
         
-        conv_1 = conv2d(conv_0, W_conv1)
-        conv_1 = tf.add(conv_1, b_conv1)
-        conv_1 = tf.nn.relu(conv_1)
+        conv_0_shape = conv_0.get_shape().as_list()
+        conv_0 = tf.reshape(conv_0, [-1, conv_0_shape[1] * conv_0_shape[2] * conv_0_shape[3]])
         
-        conv_2 = conv2d(conv_1, W_conv2)
-        conv_2 = tf.add(conv_2, b_conv2)
-        conv_2 = tf.nn.relu(conv_2)
+        #conv_1 = conv2d(conv_0, W_conv1)
+        #conv_1 = tf.add(conv_1, b_conv1)
+        #conv_1 = tf.nn.relu(conv_1)
         
-        conv_2 = max_pool_2x2(conv_2)
+        #conv_1 = max_pool_2x2(conv_1)
         
-        conv_3 = conv2d(conv_2, W_conv3)
-        conv_3 = tf.add(conv_3, b_conv3)
-        conv_3 = tf.nn.relu(conv_3)
+        #conv_2 = conv2d(conv_1, W_conv2)
+        #conv_2 = tf.add(conv_2, b_conv2)
+        #conv_2 = tf.nn.relu(conv_2)
         
-        conv_4 = conv2d(conv_3, W_conv4)
-        conv_4 = tf.add(conv_4, b_conv4)
-        conv_4 = tf.nn.relu(conv_4)
+        #conv_2 = max_pool_2x2(conv_2)
         
-        conv_5 = conv2d(conv_4, W_conv5)
-        conv_5 = tf.add(conv_5, b_conv5)
-        conv_5 = tf.nn.relu(conv_5)
+        #conv_3 = conv2d(conv_2, W_conv3)
+        #conv_3 = tf.add(conv_3, b_conv3)
+        #conv_3 = tf.nn.relu(conv_3)
         
-        conv_5 = max_pool_2x2(conv_5)
-        conv_5_shape = conv_5.get_shape().as_list()        
+        #conv_4 = conv2d(conv_3, W_conv4)
+        #conv_4 = tf.add(conv_4, b_conv4)
+        #conv_4 = tf.nn.relu(conv_4)
         
-        conv_5 = tf.reshape(conv_5, [-1, conv_5_shape[1] * conv_5_shape[2] * conv_5_shape[3]])
+        #conv_5 = conv2d(conv_4, W_conv5)
+        #conv_5 = tf.add(conv_5, b_conv5)
+        #conv_5 = tf.nn.relu(conv_5)
         
-        fc_0 = tf.add(tf.matmul(conv_5, W_fc0), b_fc0)
+        #conv_5 = max_pool_2x2(conv_2) #CHANGE THIS BACK TO CONV_5
+        #conv_5_shape = conv_5.get_shape().as_list()        
+        
+        #conv_5 = tf.reshape(conv_5, [-1, conv_5_shape[1] * conv_5_shape[2] * conv_5_shape[3]])
+        
+        fc_0 = tf.add(tf.matmul(conv_0, W_fc0), b_fc0)
         fc_0 = tf.nn.relu(fc_0)
         fc_0 = tf.nn.dropout(fc_0, keep_prob)
         
-        fc_1 = tf.add(tf.matmul(fc_0, W_fc1), b_fc1)
-        fc_1 = tf.nn.relu(fc_1)
-        fc_1 = tf.nn.dropout(fc_1, keep_prob)
+        #fc_1 = tf.add(tf.matmul(fc_0, W_fc1), b_fc1)
+        #fc_1 = tf.nn.relu(fc_1)
+        #fc_1 = tf.nn.dropout(fc_1, keep_prob)
         
-        fc_2 = tf.add(tf.matmul(fc_1, W_fc2), b_fc2)
+        fc_2 = tf.add(tf.matmul(fc_0, W_fc2), b_fc2)
         
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = fc_2, labels = y))
         optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(cost)
@@ -286,22 +292,22 @@ tf.reset_default_graph()
 def save_model():
     save_file = './train_model.ckpt'
     saver = tf.train.Saver({"W_0": W_conv0,
-                            "W_1": W_conv1,
-                            "W_2": W_conv2,
-                            "W_3": W_conv3,
-                            "W_4": W_conv4,
-                            "W_5": W_conv5,
-                            "W_6": W_fc0,
-                            "W_7": W_fc1,
-                            "W_8": W_fc2,
+                            #"W_1": W_conv1,
+                            #"W_2": W_conv2,
+                            #"W_3": W_conv3,
+                            #"W_4": W_conv4,
+                            #"W_5": W_conv5,
+                            #"W_6": W_fc0,
+                            #"W_7": W_fc1,
+                            #"W_8": W_fc2,
                             "b_0": b_conv0,
-                            "b_1": b_conv1,
-                            "b_2": b_conv2,
-                            "b_3": b_conv3,
-                            "b_4": b_conv4,
-                            "b_5": b_conv5,
+                            #"b_1": b_conv1,
+                            #"b_2": b_conv2,
+                            #"b_3": b_conv3,
+                            #"b_4": b_conv4,
+                            #"b_5": b_conv5,
                             "b_6": b_fc0,
-                            "b_7": b_fc1,
+                            #"b_7": b_fc1,
                             "b_8": b_fc2})
     return saver, save_file
     
